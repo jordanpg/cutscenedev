@@ -19,6 +19,6 @@ for path, subdirs, files in os.walk(os.getcwd()):
 		val += countFile(f)
 		fct += 1
 
-print("Found " + str(fct) + " files with " + str(val) + " lines total.")
+print("Found " + str(fct) + " .CS files with " + str(val) + " lines total.")
 
 input("enter");

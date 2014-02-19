@@ -40,7 +40,7 @@ function Player::ApplyOutfit(%this, %fileName)
 		%params = restWords(%line);
 		if(isFunction("OutfitCommand" @ %cmd))
 			call("OutfitCommand" @ %cmd, %this, %params);
-		echo(%line);
+		//echo(%line);
 	}
 	%file.close();
 	%file.delete();

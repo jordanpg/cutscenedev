@@ -185,7 +185,7 @@ function Director_BuildTimeLineGUI()
 		profile = "GuiDefaultProfile";
 		horizSizing = "right";
 		vertSizing = "bottom";
-		extent = %resX SPC "52";
+		extent = %resX SPC "60";
 		minExtent = "600 52";
 		enabled = true;
 		visible = true;
@@ -199,7 +199,7 @@ function Director_BuildTimeLineGUI()
 			horizSizing = "right";
 			vertSizing = "bottom";
 			position = "0 0";
-			extent = %resX SPC "52";
+			extent = %resX SPC "60";
 			minExtent = "800 52";
 			enabled = true;
 			visible = true;
@@ -393,30 +393,31 @@ function Director_BuildTimeLineGUI()
 	};
 
 	//Move the rest of the elements of the chat HUD down underneath our stuff.
+	%yext = getWord(directorTimeLineDlg.extent, 1);
 	%ext = newChatHud.extent;
 	%cpos = newChatHud.position;
-	newChatHud.resize(getWord(%cpos, 0), getWord(%cpos, 1), getWord(%ext, 0), (getWord(%ext, 1) + 52));
+	newChatHud.resize(getWord(%cpos, 0), getWord(%cpos, 1), getWord(%ext, 0), (getWord(%ext, 1) + %yext));
 	%ct = newChatHud.getCount();
 	for(%i = 0; %i < %ct; %i++)
 	{
 		%obj =	newChatHud.getObject(%i);
 		%pos = %obj.position;
 		%ex = %obj.extent;
-		%obj.resize(getWord(%pos, 0), (getWord(%pos, 1) + 52), getWord(%ex, 0), getWord(%ex, 1));
+		%obj.resize(getWord(%pos, 0), (getWord(%pos, 1) + %yext), getWord(%ex, 0), getWord(%ex, 1));
 	}
 	newChatHud.add(directorTimeLineDlg);
 
 	%epos = HUD_EnergyBar.position;
 	%eext = HUD_EnergyBar.extent;
-	HUD_EnergyBar.resize(getWord(%epos, 0), (getWord(%epos, 1) + 52), getWord(%eext, 0), getWord(%eext, 1));
+	HUD_EnergyBar.resize(getWord(%epos, 0), (getWord(%epos, 1) + %yext), getWord(%eext, 0), getWord(%eext, 1));
 
 	%epos = HUD_ToolBox.position;
 	%eext = HUD_ToolBox.extent;
-	HUD_ToolBox.resize(getWord(%epos, 0), (getWord(%epos, 1) + 52), getWord(%eext, 0), getWord(%eext, 1));
+	HUD_ToolBox.resize(getWord(%epos, 0), (getWord(%epos, 1) + %yext), getWord(%eext, 0), getWord(%eext, 1));
 
 	%epos = HUD_ToolNameBG.position;
 	%eext = HUD_ToolNameBG.extent;
-	HUD_ToolNameBG.resize(getWord(%epos, 0), (getWord(%epos, 1) + 52), getWord(%eext, 0), getWord(%eext, 1));
+	HUD_ToolNameBG.resize(getWord(%epos, 0), (getWord(%epos, 1) + %yext), getWord(%eext, 0), getWord(%eext, 1));
 
 	return directorTimeLineDlg;
 }
@@ -681,6 +682,7 @@ function Director_Exit()
 	if(!$Director::Active)
 		return;
 
+	%yext = getWord(directorTimeLineDlg.extent, 1);
 	if(isObject(directorTimeLineDlg))
 		directorTimeLineDlg.delete();
 	if(isObject(Director_EventKeeper))
@@ -691,27 +693,27 @@ function Director_Exit()
 	//Move the chat HUD elements back up
 	%ext = newChatHud.extent;
 	%cpos = newChatHud.position;
-	newChatHud.resize(getWord(%cpos, 0), getWord(%cpos, 1), getWord(%ext, 0), (getWord(%ext, 1) - 52));
+	newChatHud.resize(getWord(%cpos, 0), getWord(%cpos, 1), getWord(%ext, 0), (getWord(%ext, 1) - %yext));
 	%ct = newChatHud.getCount();
 	for(%i = 0; %i < %ct; %i++)
 	{
 		%obj =	newChatHud.getObject(%i);
 		%pos = %obj.position;
 		%ex = %obj.extent;
-		%obj.resize(getWord(%pos, 0), (getWord(%pos, 1) - 52), getWord(%ex, 0), getWord(%ex, 1));
+		%obj.resize(getWord(%pos, 0), (getWord(%pos, 1) - %yext), getWord(%ex, 0), getWord(%ex, 1));
 	}
 
 	%epos = HUD_EnergyBar.position;
 	%eext = HUD_EnergyBar.extent;
-	HUD_EnergyBar.resize(getWord(%epos, 0), (getWord(%epos, 1) - 52), getWord(%eext, 0), getWord(%eext, 1));
+	HUD_EnergyBar.resize(getWord(%epos, 0), (getWord(%epos, 1) - %yext), getWord(%eext, 0), getWord(%eext, 1));
 
 	%epos = HUD_ToolBox.position;
 	%eext = HUD_ToolBox.extent;
-	HUD_ToolBox.resize(getWord(%epos, 0), (getWord(%epos, 1) - 52), getWord(%eext, 0), getWord(%eext, 1));
+	HUD_ToolBox.resize(getWord(%epos, 0), (getWord(%epos, 1) - %yext), getWord(%eext, 0), getWord(%eext, 1));
 
 	%epos = HUD_ToolNameBG.position;
 	%eext = HUD_ToolNameBG.extent;
-	HUD_ToolNameBG.resize(getWord(%epos, 0), (getWord(%epos, 1) - 52), getWord(%eext, 0), getWord(%eext, 1));
+	HUD_ToolNameBG.resize(getWord(%epos, 0), (getWord(%epos, 1) - %yext), getWord(%eext, 0), getWord(%eext, 1));
 }
 
 function Director_Scrub(%amt, %restrict)
