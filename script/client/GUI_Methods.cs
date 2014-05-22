@@ -1,5 +1,3 @@
-$CutsceneModuleClient::GUI_Methods = true;
-
 function NoHudGUI::Widescreen(%this, %height, %len, %speed, %color)
 {
 	if(isObject(WidescreenTop))

@@ -1,4 +1,4 @@
-$CutsceneModuleClient::Director = true;
+$Cutscene::ModuleDirector = true;
 
 //GLOBALS
 $Cutscene::Director::DefaultStepSize = 1000;
@@ -8,25 +8,18 @@ $Cutscene::Director::ZoomSpeed = 250;
 $Cutscene::Director::MaxZoomLevel = ($Cutscene::Director::ZoomSpeed * 20);
 
 //Dot colour codes for timeline
-$DMTYPES = 0;
+$DMCOLOR_CAMERA		= "1 1 0 1";
+$DMCOLOR_PATHCAMERA	= "1 0.7 0 1";
+$DMCOLOR_ACTOR		= "0 0.7 0 1";
+$DMCOLOR_EFFECT		= "0.7 0 0.7 1";
+$DMCOLOR_CAPTION	= "0 0.7 0.7 1";
+$DMCOLOR_SCRIPT		= "0.7 0 0 1";
+$DMCOLOR_END		= "0.3 0.3 0.3 1";
 $DMCOLOR_[""]		= "1 1 1 1";
 //Dot picture key
 $DMIMG = 	"data/unevent" TAB
 			"data/badevent" TAB
 			"data/event";
-
-function clientCmdDirector_AddType(%name, %color)
-{
-	if(%name $= "" || %color $= "")
-		return;
-
-	if(searchFields($DMTYPENAMES, %name) != -1)
-		return;
-
-	$DMTYPE[$DMTYPES] = %name;
-	$DMCOLOR_[strUpr(%name)] = %color;
-	$DMTYPENAMES = trim($DMTYPENAMES TAB %name);
-}
 
 //some GUI profiles that we're going to just stick here because why not i guess
 if(!isObject(DirectorTextProfile))
@@ -57,7 +50,7 @@ function woowee(%i, %add, %s)
 
 function directorrandomevent(%good)
 {
-	%type = getField($DMTYPENAMES, getRandom(0, (getFieldCount($DMTYPENAMES) - 1)));
+	%type = getField("Camera	PathCamera	Actor	Effect	Caption	Script	End", getRandom(0, 6));
 	%position = getRandom($Director::StartTime, $Director::EndTime);
 	%this = Director_EventKeeper.newEvent("", %type, %position);
 	if(%good !$= "")
@@ -68,19 +61,19 @@ function directorrandomevent(%good)
 	return %this;
 }
 
-function phdance(%i, %add, %s)
+function phdance(%i, %add, %start, %end, %s)
 {
 	if(isEventPending($phdance))
 		cancel($phdance);
 	$Director::Playhead += %add;
-	if($Director::Playhead > $Director::EndTime || $Director::Playhead < $Director::StartTime)
+	if($Director::Playhead > %end || $Director::Playhead < %start)
 	{
 		%add *= -1;
 		$Director::Playhead += %add;
 	}
 	directorTimeLineDlg.updateElements();
 	if(%i)
-		$phdance = schedule(%s, 0, phdance, %i, %add, %s);
+		$phdance = schedule(%s, 0, phdance, %i, %add, %start, %end, %s);
 }
 
 function Director_CreateEventKeeper(%label)
@@ -101,9 +94,6 @@ function Director_CreateEventKeeper(%label)
 
 function Director_EventKeeper::NewEvent(%this, %sid, %type, %pos)
 {
-	if(searchFields($DMTYPENAMES, %type) == -1) //This would indicate some kind of failure in extension of the event system.
-		%type = "";
-
 	if(%sid $= "" || isObject(%this.eventkey[%sid]))
 		%sid = %this.events;
 	%event = new ScriptObject("DirectorEvent_" @ %sid)
@@ -120,8 +110,6 @@ function Director_EventKeeper::NewEvent(%this, %sid, %type, %pos)
 	%this.events++;
 	%this.add(%event);
 
-	if($Director::Active)
-		directorTimeLineDlg.updateElements();
 	return %event;
 }
 
@@ -149,27 +137,12 @@ function Director_EventKeeper::SetGoodEvent(%this, %sid, %bool)
 		return false;
 
 	%event.good = (%bool ? true : false); //resolves to a boolean if we're given something else
-	if($Director::Active)
-		directorTimeLineDlg.updateElements();
 	return true;
 }
 
 function Director_EventKeeper::SetLabel(%this, %label)
 {
 	%this.label = %label;
-	if($Director::Active)
-		directorTimeLineDlg.updateElements();
-}
-
-function Director_EventKeeper::selectEvent(%this, %sid)
-{
-	if(!isObject(%event = %this.eventkey[%sid]))
-		return false;
-
-	$Director::ActiveEvent = %event;
-	if($Director::Active)
-		directorTimeLineDlg.updateElements();
-	return true;
 }
 
 function Director_BuildTimeLineGUI()
@@ -177,36 +150,33 @@ function Director_BuildTimeLineGUI()
 	if(isObject(directorTimeLineDlg))
 		directorTimeLineDlg.delete();
 
-	%res = getRes();
-	%resX = getWord(%res, 0);
-
 	new GuiSwatchCtrl(directorTimeLineDlg)
 	{
 		profile = "GuiDefaultProfile";
 		horizSizing = "right";
 		vertSizing = "bottom";
-		extent = %resX SPC "60";
+		extent = "600 52";
 		minExtent = "600 52";
 		enabled = true;
 		visible = true;
 		clipToParent = true;
 		color = "0 0 0 0";
-		position = "0 0";
+		position = ((getWord(getRes(), 0) / 2) - 300) SPC "0";
 
-		new GuiBitmapCtrl(directorBanner)
+		new GuiBitmapCtrl(directorTimeLine)
 		{
 			profile = "GuiDefaultProfile";
 			horizSizing = "right";
 			vertSizing = "bottom";
-			position = "0 0";
-			extent = %resX SPC "60";
-			minExtent = "800 52";
+			position = "60 0";
+			extent = "480 32";
+			minExtent = "480 32";
 			enabled = true;
 			visible = true;
 			clipToParent = true;
-			bitmap = $Cutscene::Root @ "data/banner";
+			bitmap = $Cutscene::Root @ "data/timeline";
 			wrap = false;
-			lockAspectRatio = false;
+			lockAspectRatio = true;
 			alignLeft = false;
 			alignTop = false;
 			overflowImage = false;
@@ -214,210 +184,132 @@ function Director_BuildTimeLineGUI()
 			mColor = "255 255 255 255";
 			mMultiply = false;
 
-			new GuiSwatchCtrl(directorTimeLineSwatch)
+			new GuiSwatchCtrl(directorEventSwatch)
 			{
 				profile = "GuiDefaultProfile";
 				horizSizing = "right";
 				vertSizing = "bottom";
-				extent =  "600 52";
-				minExtent = "600 52";
+				extent = "480 32";
+				minExtent = "480 32";
 				enabled = true;
 				visible = true;
 				clipToParent = true;
 				color = "0 0 0 0";
-				position = ((%resX / 2) - 300) SPC "0";
-
-				new GuiBitmapCtrl(directorTimeLine)
-				{
-					profile = "GuiDefaultProfile";
-					horizSizing = "right";
-					vertSizing = "bottom";
-					position = "60 0";
-					extent = "480 32";
-					minExtent = "480 32";
-					enabled = true;
-					visible = true;
-					clipToParent = true;
-					bitmap = $Cutscene::Root @ "data/timeline";
-					wrap = false;
-					lockAspectRatio = true;
-					alignLeft = false;
-					alignTop = false;
-					overflowImage = false;
-					keepCached = false;
-					mColor = "255 255 255 255";
-					mMultiply = false;
-		
-					new GuiSwatchCtrl(directorEventSwatch)
-					{
-						profile = "GuiDefaultProfile";
-						horizSizing = "right";
-						vertSizing = "bottom";
-						extent = "480 32";
-						minExtent = "480 32";
-						enabled = true;
-						visible = true;
-						clipToParent = true;
-						color = "0 0 0 0";
-						position = "0 0";
-					};
-				};
-		
-				new GuiBitmapCtrl(directorStartBack)
-				{	
-					profile = "GuiDefaultProfile";
-					horizSizing = "right";
-					vertSizing = "bottom";
-					position = "0 0";
-					extent = "60 20";
-					minExtent = "60 20";
-					enabled = true;
-					visible = true;
-					clipToParent = true;
-					bitmap = $Cutscene::Root @ "data/starttime";
-					wrap = false;
-					lockAspectRatio = true;
-					alignLeft = false;
-					alignTop = false;
-					overflowImage = false;
-					keepCached = false;
-					mColor = "255 255 255 255";
-					mMultiply = false;
-		
-					new GuiMLTextCtrl(directorStartTime)
-					{
-						profile = "DirectorTextProfile";
-						horizSizing = "right";
-						vertSizing = "bottom";
-						position = "0 1";
-						extent = "60 18";
-						minExtent = "60 18";
-						enabled = true;
-						visible = true;
-						clipToParent = true;
-						allowColorChars = true;
-						text = "<just:center>0:00:000";
-					};
-				};
-		
-				new GuiBitmapCtrl(directorEndBack)
-				{	
-					profile = "GuiDefaultProfile";
-					horizSizing = "right";
-					vertSizing = "bottom";
-					position = "540 0";
-					extent = "60 20";
-					minExtent = "60 20";
-					enabled = true;
-					visible = true;
-					clipToParent = true;
-					bitmap = $Cutscene::Root @ "data/endtime";
-					wrap = false;
-					lockAspectRatio = true;
-					alignLeft = false;
-					alignTop = false;
-					overflowImage = false;
-					keepCached = false;
-					mColor = "255 255 255 255";
-					mMultiply = false;
-		
-					new GuiMLTextCtrl(directorEndTime)
-					{
-						profile = "DirectorTextProfile";
-						horizSizing = "right";
-						vertSizing = "bottom";
-						position = "0 1";
-						extent = "60 18";
-						minExtent = "60 18";
-						enabled = true;
-						visible = true;
-						clipToParent = true;
-						allowColorChars = true;
-						text = "<just:center>0:00:000";
-					};
-				};
-		
-				new GuiBitmapCtrl(directorStepBack)
-				{	
-					profile = "GuiDefaultProfile";
-					horizSizing = "right";
-					vertSizing = "bottom";
-					position = "228 32";
-					extent = "144 20";
-					minExtent = "144 20";
-					enabled = true;
-					visible = true;
-					clipToParent = true;
-					bitmap = $Cutscene::Root @ "data/stepsize";
-					wrap = false;
-					lockAspectRatio = true;
-					alignLeft = false;
-					alignTop = false;
-					overflowImage = false;
-					keepCached = false;
-					mColor = "255 255 255 255";
-					mMultiply = false;
-		
-					new GuiMLTextCtrl(directorStepSize)
-					{
-						profile = "DirectorTextProfile";
-						horizSizing = "right";
-						vertSizing = "bottom";
-						position = "0 0";
-						extent = "144 18";
-						minExtent = "144 18";
-						enabled = true;
-						visible = true;
-						clipToParent = true;
-						allowColorChars = true;
-						text = "<just:center>Zoom: N/A";
-					};
-				};
+				position = "0 0";
 			};
+		};
 
-			new GuiMLTextCtrl(directorLabel)
+		new GuiBitmapCtrl(directorStartBack)
+		{	
+			profile = "GuiDefaultProfile";
+			horizSizing = "right";
+			vertSizing = "bottom";
+			position = "0 0";
+			extent = "60 20";
+			minExtent = "60 20";
+			enabled = true;
+			visible = true;
+			clipToParent = true;
+			bitmap = $Cutscene::Root @ "data/starttime";
+			wrap = false;
+			lockAspectRatio = true;
+			alignLeft = false;
+			alignTop = false;
+			overflowImage = false;
+			keepCached = false;
+			mColor = "255 255 255 255";
+			mMultiply = false;
+
+			new GuiMLTextCtrl(directorStartTime)
 			{
 				profile = "DirectorTextProfile";
 				horizSizing = "right";
 				vertSizing = "bottom";
-				position =  "16 4";
-				extent = "256 18";
+				position = "0 1";
+				extent = "60 18";
+				minExtent = "60 18";
+				enabled = true;
+				visible = true;
+				clipToParent = true;
+				allowColorChars = true;
+				text = "<just:center>0:00:000";
+			};
+		};
+
+		new GuiBitmapCtrl(directorEndBack)
+		{	
+			profile = "GuiDefaultProfile";
+			horizSizing = "right";
+			vertSizing = "bottom";
+			position = "540 0";
+			extent = "60 20";
+			minExtent = "60 20";
+			enabled = true;
+			visible = true;
+			clipToParent = true;
+			bitmap = $Cutscene::Root @ "data/endtime";
+			wrap = false;
+			lockAspectRatio = true;
+			alignLeft = false;
+			alignTop = false;
+			overflowImage = false;
+			keepCached = false;
+			mColor = "255 255 255 255";
+			mMultiply = false;
+
+			new GuiMLTextCtrl(directorEndTime)
+			{
+				profile = "DirectorTextProfile";
+				horizSizing = "right";
+				vertSizing = "bottom";
+				position = "0 1";
+				extent = "60 18";
+				minExtent = "60 18";
+				enabled = true;
+				visible = true;
+				clipToParent = true;
+				allowColorChars = true;
+				text = "<just:center>0:00:000";
+			};
+		};
+
+		new GuiBitmapCtrl(directorStepBack)
+		{	
+			profile = "GuiDefaultProfile";
+			horizSizing = "right";
+			vertSizing = "bottom";
+			position = "228 32";
+			extent = "144 20";
+			minExtent = "144 20";
+			enabled = true;
+			visible = true;
+			clipToParent = true;
+			bitmap = $Cutscene::Root @ "data/stepsize";
+			wrap = false;
+			lockAspectRatio = true;
+			alignLeft = false;
+			alignTop = false;
+			overflowImage = false;
+			keepCached = false;
+			mColor = "255 255 255 255";
+			mMultiply = false;
+
+			new GuiMLTextCtrl(directorStepSize)
+			{
+				profile = "DirectorTextProfile";
+				horizSizing = "right";
+				vertSizing = "bottom";
+				position = "0 0";
+				extent = "144 18";
 				minExtent = "144 18";
 				enabled = true;
 				visible = true;
 				clipToParent = true;
 				allowColorChars = true;
-				text = "<just:center><font:impact:18>Name: N/A";
+				text = "<just:center>Zoom: N/A";
 			};
 		};
 	};
-
-	//Move the rest of the elements of the chat HUD down underneath our stuff.
-	%yext = getWord(directorTimeLineDlg.extent, 1);
-	%ext = newChatHud.extent;
-	%cpos = newChatHud.position;
-	newChatHud.resize(getWord(%cpos, 0), getWord(%cpos, 1), getWord(%ext, 0), (getWord(%ext, 1) + %yext));
-	%ct = newChatHud.getCount();
-	for(%i = 0; %i < %ct; %i++)
-	{
-		%obj =	newChatHud.getObject(%i);
-		%pos = %obj.position;
-		%ex = %obj.extent;
-		%obj.resize(getWord(%pos, 0), (getWord(%pos, 1) + %yext), getWord(%ex, 0), getWord(%ex, 1));
-	}
-	newChatHud.add(directorTimeLineDlg);
-
-	%epos = HUD_EnergyBar.position;
-	%eext = HUD_EnergyBar.extent;
-	HUD_EnergyBar.resize(getWord(%epos, 0), (getWord(%epos, 1) + %yext), getWord(%eext, 0), getWord(%eext, 1));
-
-	%epos = HUD_ToolBox.position;
-	%eext = HUD_ToolBox.extent;
-	HUD_ToolBox.resize(getWord(%epos, 0), (getWord(%epos, 1) + %yext), getWord(%eext, 0), getWord(%eext, 1));
-
-	%epos = HUD_ToolNameBG.position;
-	%eext = HUD_ToolNameBG.extent;
-	HUD_ToolNameBG.resize(getWord(%epos, 0), (getWord(%epos, 1) + %yext), getWord(%eext, 0), getWord(%eext, 1));
 
 	return directorTimeLineDlg;
 }
@@ -486,7 +378,7 @@ function directorTimeLineDlg::updateEvents(%this)
 							enabled = true;
 							visible = true;
 							clipToParent = true;
-							bitmap = $Cutscene::Root @ getField($DMIMG, %event.good + 1) @ "_n";
+							bitmap = $Cutscene::Root @ getField($DMIMG, %event.good + 1);
 							wrap = false;
 							lockAspectRatio = true;
 							alignLeft = false;
@@ -496,62 +388,11 @@ function directorTimeLineDlg::updateEvents(%this)
 							mColor = "255 255 255 255";
 							mMultiply = false;
 							director_event = %event;
-							//command = "echo(" @ %event @ ");";
-							text = " ";
 						};
 			%bitmap.setColor($DMCOLOR_[%event.type]);
 			directorEventSwatch.add(%bitmap);
 			Director_EventKeeper.eventbitmap[%event.sid] = %bitmap;
-			%event =  new GuiMouseEventCtrl("timelineDotEvent_" @ %event.sid)
-						{
-							profile = "GuiDefaultProfile";
-							extent = "10 10";
-							profile = "0 0";
-							clipToParent = true;
-							enabled = true;
-							visible = true;
-							minExtent = "10 10";
-							horizSizing = "right";
-							vertSizing = "bottom";
-							lockMouse = false;
-						};
-			%bitmap.add(%event);
 		}
-	}
-	if(isObject($Director::ActiveEvent))
-	{
-		//echo("bongo");
-		%bm = Director_EventKeeper.eventBitmap[$Director::ActiveEvent.sid];
-		if(!isObject(%bm))
-			return;
-		%bpos = %bm.position;
-		%bm.resize(getWord(%bpos, 0), 1, 10, 10);
-		// %selbm = new GuiBitmapButtonCtrl("timelineSelection")
-		// 		{
-		// 					profile = "GuiButtonProfile";
-		// 					horizSizing = "right";
-		// 					vertSizing = "bottom";
-		// 					position = "0 0";
-		// 					extent = "10 10";
-		// 					minExtent = "10 10";
-		// 					enabled = true;
-		// 					visible = true;
-		// 					clipToParent = true;
-		// 					bitmap = $Cutscene::Root @ "data/activeevent";
-		// 					wrap = false;
-		// 					lockAspectRatio = true;
-		// 					alignLeft = false;
-		// 					alignTop = false;
-		// 					overflowImage = false;
-		// 					keepCached = false;
-		// 					mColor = "255 255 255 255";
-		// 					mMultiply = false;
-		// 					command = "timelineSelection.getGroup().performClick();";
-		// 					text = " ";
-		// 		};
-		// %selbm.setColor($DMCOLOR_[$Director::ActiveEvent.type]);
-		// %bm.add(%selbm);
-		// echo("bonanza" SPC %bm SPC %selbm);
 	}
 }
 
@@ -561,8 +402,6 @@ function directorTimeLineDlg::updatePlayhead(%this)
 		return;
 	if(isObject(directorPlayhead))
 		directorPlayhead.delete();
-	if(isObject(directorPlayheadLine))
-		directorPlayheadLine.delete();
 	if($Director::Playhead < $Director::StartTime)
 		$Director::Playhead = $Director::StartTime;
 	if($Director::Playhead > $Director::EndTime)
@@ -577,9 +416,9 @@ function directorTimeLineDlg::updatePlayhead(%this)
 					profile = "GuiDefaultProfile";
 					horizSizing = "right";
 					vertSizing = "bottom";
-					position = (%x + 60) SPC "32";
-					extent = "9 16";
-					minExtent = "9 16";
+					position = (%x + 60) SPC "0";
+					extent = "9 48";
+					minExtent = "9 48";
 					enabled = true;
 					visible = true;
 					clipToParent = true;
@@ -593,20 +432,7 @@ function directorTimeLineDlg::updatePlayhead(%this)
 					mColor = "255 255 255 255";
 					mMultiply = false;
 				};
-	%line = new GuiSwatchCtrl(directorPlayheadLine)
-			{
-				profile = "GuiDefaultProfile";
-				horizSizing = "right";
-				vertSizing = "bottom";
-				extent = "1 32";
-				minExtent = "1 32";
-				enabled = true;
-				visible = true;
-				clipToParent = true;
-				color = "255 255 255 255";
-				position = (%x + 64) SPC "0";
-			};
-	directorTimeLineSwatch.add(%playhead, %line);
+	%this.add(%playhead);
 	commandToServer('Dir_SetTimelinePosition', $Director::Playhead);
 }
 
@@ -621,10 +447,8 @@ function directorTimeLineDlg::updateElements(%this)
 	if($Director::StepSize > $Cutscene::Director::MaxZoomLevel)
 		$Director::StepSize = $Cutscene::Director::MaxZoomLevel;
 	directorStepSize.setText("<just:center>Zoom:" SPC mFloatLength($Director::StepSize / 1000, 2) @ "x");
-	directorLabel.setText("<just:left><font:impact:18>Name:" SPC Director_EventKeeper.label);
 	%this.updateEvents();
 	%this.updatePlayhead();
-	newChatHud.add(%this);
 }
 
 function Director_ModifyTimeline(%start, %step, %maintain)
@@ -682,38 +506,12 @@ function Director_Exit()
 	if(!$Director::Active)
 		return;
 
-	%yext = getWord(directorTimeLineDlg.extent, 1);
 	if(isObject(directorTimeLineDlg))
 		directorTimeLineDlg.delete();
 	if(isObject(Director_EventKeeper))
 		Director_EventKeeper.delete();
 
 	deleteVariables("$Director::*");
-
-	//Move the chat HUD elements back up
-	%ext = newChatHud.extent;
-	%cpos = newChatHud.position;
-	newChatHud.resize(getWord(%cpos, 0), getWord(%cpos, 1), getWord(%ext, 0), (getWord(%ext, 1) - %yext));
-	%ct = newChatHud.getCount();
-	for(%i = 0; %i < %ct; %i++)
-	{
-		%obj =	newChatHud.getObject(%i);
-		%pos = %obj.position;
-		%ex = %obj.extent;
-		%obj.resize(getWord(%pos, 0), (getWord(%pos, 1) - %yext), getWord(%ex, 0), getWord(%ex, 1));
-	}
-
-	%epos = HUD_EnergyBar.position;
-	%eext = HUD_EnergyBar.extent;
-	HUD_EnergyBar.resize(getWord(%epos, 0), (getWord(%epos, 1) - %yext), getWord(%eext, 0), getWord(%eext, 1));
-
-	%epos = HUD_ToolBox.position;
-	%eext = HUD_ToolBox.extent;
-	HUD_ToolBox.resize(getWord(%epos, 0), (getWord(%epos, 1) - %yext), getWord(%eext, 0), getWord(%eext, 1));
-
-	%epos = HUD_ToolNameBG.position;
-	%eext = HUD_ToolNameBG.extent;
-	HUD_ToolNameBG.resize(getWord(%epos, 0), (getWord(%epos, 1) - %yext), getWord(%eext, 0), getWord(%eext, 1));
 }
 
 function Director_Scrub(%amt, %restrict)
@@ -789,103 +587,3 @@ function Director_EasyScrub(%type, %mult)
 	%val *= %mult;
 	Director_Scrub(%val);
 }
-
-package DirectorClient
-{
-	function ToggleCursor(%val) //Workaround for an issue where you couldn't use the PlayGUI cursor in singleplayer.
-	{
-		if($Pref::Net::ServerType $= "SinglePlayer" && (Canvas.getContent() == nameToID(PlayGUI) || Canvas.getContent() == nameToID(NoHudGUI)) && %val)
-		{
-			$SinglePlayerCursor = !$SinglePlayerCursor;
-			if($SinglePlayerCursor)
-				cursorOn();
-			else
-				cursorOff();
-			return;
-		}
-		parent::ToggleCursor(%val);
-	}
-
-	function GuiMouseEventCtrl::onMouseDown(%this, %mod, %pos, %click)
-	{
-		%parent = %this.getGroup();
-		if(isObject(%parent.director_event))
-		{
-			%parent.setBitmap($Cutscene::Root @ getField($DMIMG, %parent.director_event.good + 1) @ "_d");
-			if(%click == 1)
-				schedule(150, 0, commandToServer, 'DirectorSelectEvent', %parent.director_event.sid);
-		}
-		else
-			parent::onMouseDown(%this, %mod, %pos, %click);
-	}
-
-	function GuiMouseEventCtrl::onMouseUp(%this, %mod, %pos, %click)
-	{
-		%parent = %this.getGroup();
-		if(isObject(%parent.director_event))
-		{
-			%parent.setBitmap($Cutscene::Root @ getField($DMIMG, %parent.director_event.good + 1) @ "_h");
-			if(%click >= 2)
-			{
-				echo("LEFT DOUBLE" SPC %this SPC %parent);
-				//blegh
-			}
-		}
-		else
-			parent::onMouseUp(%this, %mod, %pos, %click);
-	}
-
-	function GuiMouseEventCtrl::onRightMouseDown(%this, %mod, %pos, %click)
-	{
-		%parent = %this.getGroup();
-		if(isObject(%parent.director_event))
-		{
-			%parent.setBitmap($Cutscene::Root @ getField($DMIMG, %parent.director_event.good + 1) @ "_d");
-		}
-		else
-			parent::onRightMouseDown(%this, %mod, %pos, %click);
-	}
-
-	function GuiMouseEventCtrl::onRightMouseUp(%this, %mod, %pos, %click)
-	{
-		%parent = %this.getGroup();
-		if(isObject(%parent.director_event))
-		{
-			%parent.setBitmap($Cutscene::Root @ getField($DMIMG, %parent.director_event.good + 1) @ "_h");
-			echo("RIGHT SINGLE" SPC %this SPC %parent);
-		}
-		else
-			parent::onRightMouseUp(%this, %mod, %pos, %click);
-	}
-
-	function GuiMouseEventCtrl::onMouseEnter(%this, %mod, %pos, %click)
-	{
-		%parent = %this.getGroup();
-		if(isObject(%parent.director_event))
-		{
-			%parent.setBitmap($Cutscene::Root @ getField($DMIMG, %parent.director_event.good + 1) @ "_h");
-		}
-		else
-			parent::onMouseEnter(%this, %mod, %pos, %click);
-	}
-
-	function GuiMouseEventCtrl::onMouseLeave(%this, %mod, %pos, %click)
-	{
-		%parent = %this.getGroup();
-		if(isObject(%parent.director_event))
-		{
-			%parent.setBitmap($Cutscene::Root @ getField($DMIMG, %parent.director_event.good + 1) @ "_n");
-		}
-		else
-			parent::onMouseLeave(%this, %mod, %pos, %click);
-	}
-
-	function disconnectedCleanup()
-	{
-		%r = parent::disconnectedCleanup();
-		if($Director::Active)
-			Director_Exit();
-		return %r;
-	}
-};
-activatePackage(DirectorClient);

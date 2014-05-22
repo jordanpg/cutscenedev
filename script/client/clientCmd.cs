@@ -1,4 +1,4 @@
-$CutsceneModuleClient::clientCmd = true;
+$Cutscene::ModuleclientCmd = true;
 
 function clientCmdCutscene_SetHUD(%i)
 {
@@ -66,6 +66,13 @@ function clientCmdDirector_AddEvent(%sid, %type, %position)
 	Director_EventKeeper.newEvent(%sid, %type, %position);
 }
 
+function clientCmdDirector_ClearEvents()
+{
+	if(!$Director::Active || !isObject(Director_EventKeeper))
+		return;
+	Director_CreatEventKeeper(Director_EventKeeper.label);
+}
+
 function clientCmdDirector_GoodEvent(%sid, %val)
 {
 	if(!$Director::Active || !isObject(Director_EventKeeper))
@@ -79,7 +86,6 @@ function clientCmdDirector_SetLabel(%label)
 		return;
 
 	Director_EventKeeper.setLabel(%label);
-	directorTimeLineDlg.updateElements();
 }
 
 function clientCmdDirector_Scrub(%type, %mult)
@@ -88,24 +94,4 @@ function clientCmdDirector_Scrub(%type, %mult)
 		return;
 
 	Director_EasyScrub(%type, %mult);
-}
-
-function clientCmdDirector_Handshake()
-{
-	commandToServer('Director_Handshake');
-}
-
-function clientCmdDirector_SetActiveEvent(%sid)
-{
-	if(!$Director::Active || !isObject(Director_EventKeeper))
-		return;
-	Director_EventKeeper.selectEvent(%sid);
-}
-
-function clientCmdDirector_FlushEventKeeper()
-{
-	if(!$Director::Active || !isObject(Director_EventKeeper))
-		return;
-	Director_CreateEventKeeper(Director_EventKeeper.label);
-	directorTimeLineDlg.updateElements();
 }

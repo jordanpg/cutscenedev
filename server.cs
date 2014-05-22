@@ -1,8 +1,5 @@
-$CutsceneModuleServer::Server = true;
+$Cutscene::ModuleServer = true;
 
 //DEPENDENCIES
-if(!$CutsceneModule::Main)
+if(!$Cutscene::ModuleMain)
 	exec("./main.cs");
-
-//SCRIPT LOADING
-exec("./script/server/ServerMain.cs");

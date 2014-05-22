@@ -1,8 +1,5 @@
-$CutsceneModuleClient::Client = true;
+$Cutscene::ModuleClient = true;
 
 //DEPENDENCIES
-if(!$CutsceneModule::Main)
+if(!$Cutscene::ModuleMain)
 	exec("./main.cs");
-
-//SCRIPT LOADING
-exec("./script/client/ClientMain.cs");

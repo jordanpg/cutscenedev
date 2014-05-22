@@ -1,1 +1,1 @@
-$CutsceneModuleServer::serverCmd = true;
+$Cutscene::ModuleserverCmd = true;

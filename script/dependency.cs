@@ -1,4 +1,4 @@
-$CutsceneModule::Dependency = true;
+$Cutscene::ModuleDependency = true;
 
 //FUNCTIONS
 function eulerToAxis(%euler) //Trader
@@ -35,7 +35,7 @@ function axisToEuler(%axis) //Trader
 	return mRadToDeg(mAsin(%m23)) SPC mRadToDeg(mAtan(-%m13, %m33)) SPC mRadToDeg(mAtan(-%m21, %m22));
 }
 
-function addKeyBind(%div,%name,%cmd,%device,%action,%overWrite) //The Fantastic Greek2Me
+function addKeyBind(%div,%name,%cmd,%device,%action,%overWrite) //Greek2Me
 {
 	if(%device !$= "" && %action !$= "")
 	{
@@ -74,39 +74,6 @@ function addKeyBind(%div,%name,%cmd,%device,%action,%overWrite) //The Fantastic 
 		$RemapCmd[$RemapCount] = %cmd;
 		$RemapCount ++;
 	}
-}
-
-function SimObject::call(%this,%method,%v0,%v1,%v2,%v3,%v4,%v5,%v6,%v7,%v8,%v9,%v10,%v11,%v12,%v13,%v14,%v15,%v16,%v17) //The Wonderful Greek2Me
-{
-	%lastNull = -1;
-	for(%i = 0; %i < 18; %i ++)
-	{
-		%a = %v[%i];
-		if(%a $= "")
-		{
-			if(%lastNull < 0)
-				%lastNull = %i;
-			continue;
-		}
-		else
-		{
-			if(%lastNull >= 0)
-			{
-				for(%e = %lastNull; %e < %i; %e ++)
-				{
-					if(%args !$= "")
-						%args = %args @ ",";
-					%args = %args @ "\"\"";
-				}
-				%lastNull = -1;
-			}
-			if(%args !$= "")
-				%args = %args @ ",";
-			%args = %args @ "\"" @ %a @ "\"";
-		}
-	}
-
-	eval(%this @ "." @ %method @ "(" @ %args @ ");");
 }
 
 function searchFields(%string, %searchString)
@@ -165,30 +132,4 @@ function bubbleSort(%list)
 		}
 	}
 	return %list;
-}
-
-function stupidcolours(%dumb)
-{
-	%ct = (getWordCount(%dumb) - 1);
-	for(%i = 0; %i < 4; %i++)
-	{
-		if(%i >= %ct)
-			break;
-		%c = getWord(%dumb, %i);
-		if(%c > 1)
-			%dumb = setWord(%dumb, %i, (%c / 255));
-	}
-	return %dumb;
-}
-
-function combineToFields(%p1, %p2, %p3, %p4, %p5, %p6, %p7, %p8, %p9, %p10, %p11, %p12, %p13, %p14, %p15, %p16, %p17, %p18, %p19, %p20)
-{
-	%r = "";
-	for(%i = 2; %i <= 20; %i++)
-	{
-		if(%p[%i] $= "")
-			continue;
-		%r = ltrim(%r TAB %p[%i]);
-	}
-	return %r;
 }
